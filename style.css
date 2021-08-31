@@ -1,0 +1,12 @@
+.section{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+.section{  
+    flex-direction: column;
+}
+.difference_t, .duration, .push{
+   
+}
