@@ -1,88 +1,77 @@
-let url = 'https://api.openweathermap.org/data/2.5/onecall?&lat=54.7065&lon=20.511&exclude={part}&lang=ru&appid=72505d3eef12efc551bd8c804b7e0395&units=metric';
+//Переменные для вывода на страницу
+let temp = document.querySelector('.temp');
+let feels_like = document.querySelector('.feels');
+let dif = document.querySelector('.dif');
+let min_dif = document.querySelector('.min_dif');
+let dt = document.querySelector('.dt');
+let duration = document.querySelector('.duration');
+let day = document.querySelector('.day');
+let city = document.querySelector('.city');
+//объект со всеми ключами для запроса на openweathermap, сделал для удобства
+const API = {
+    "id": 554234, //id города
+    "name": "Kaliningrad", //наименование города
+    "key": '72505d3eef12efc551bd8c804b7e0395', //API ключ
+    "lang": 'ru', // язык
+    "exclude": 'minutely,hourly,current', // исключаем неиспользуеммые данные
+    "units": 'metric', // формат - градусы по цельсию
+    "coord": { //координаты города
+        "lon": 20.51095, // Долгота
+        "lat": 54.70649 //Широта
+    }
+}
+//собираем адрес для GET запроса fetch
+let url = `https://api.openweathermap.org/data/2.5/onecall?&exclude=${API.exclude}&lat=${API.coord.lat}&lon=${API.coord.lon}&lang=${API.lang}&appid=${API.key}&units=${API.units}`;
 
 fetch(url)
-  .then(function (response) {
-    return response.json();
-  })
-  .then(function (data) {
-    let unix_dt = data.current.dt; //Получаем дату в формате Unix timestamp
-    let localdate = new Date(unix_dt * 1000).toLocaleDateString() // Получаем текущую дату - переводим милисекунды в секунды, переводим в привычный формат DD.MM.YYYY
-    let actual_temp_night = data.daily[0].temp.night //получаем фактическую температуру ночью
+    .then(response => response.json())
+    .then(function (data) {
+        //----------Задача №1----------------//
+        let timezone = data.timezone; //получаем город
+        let daily = data.daily; //массив с данным для 8 дней включая текущие
+        let dif_temp = []; //разница температуры для всех дней
+        for (let i = 0; i < daily.length; i++) {
+            let dt1 = new Date(data.daily[i].dt * 1000).toLocaleDateString();
+            dt.innerHTML += `${dt1}<br>` //вывводим дату
+            temp.innerHTML += `${daily[i].temp.night}&deg<br>`; //фактическая  температура ночью
+            feels_like.innerHTML += `${daily[i].feels_like.night}&deg<br>`; //ощущаемая температура ночью
+            dif.innerHTML += `${Math.abs(daily[i].temp.night - daily[i].feels_like.night).toFixed(2)}&deg<br>`;
+            dif_temp.push([daily[i].dt, +(Math.abs(daily[i].temp.night - daily[i].feels_like.night)).toFixed(2)])
+        }
 
-    document.querySelector('.city').innerText = 'Мой город: ' + `${data.timezone}`.slice(7); // Выводим наименование города
-    document.querySelector('.dt').innerText = `Текущая дата: ${localdate}`; //выводим текущую дату
+        let count = dif_temp[0][1]; //наименьшая разница температур p
+        for (let i = 0; i < dif_temp.length; i++) { //перебор с сохранением наименьшего значения
+            if (count > dif_temp[i][1]) {
+                count = dif_temp[i][1]
+            }
+        }
 
-    let obj = []; // массив  Дата, Время, Ощущаемая температура
-    for (let i = 0; i < data.hourly.length; i++) {
-      let mass_time = new Date(data.hourly[i].dt * 1000).toLocaleTimeString(); //получаем время
-      let temp_feels_like = data.hourly[i].feels_like //вся температура
-      let forecast_dates = new Date(data.hourly[i].dt * 1000).toLocaleDateString() //прогнозные даты
-      obj.push([forecast_dates, mass_time, temp_feels_like]); //заполняем массив Дата, Время, Температура
-    }
-    let daytemp = []; // Используется для хранения  данных (дата, время, ощущаемая температура) за каждый час текущего дня
-    obj.forEach(function (item, i) {
-      switch (item[0]) {
-        //case '27.08.2021':
-        //case '28.08.2021':
-        case localdate: //выбираем только текущий день
-          switch (item[1]) { // отбираем только промежуток времени с 12:00 по 18:00
-            case '12:00:00':
-            case '13:00:00':
-            case '14:00:00':
-            case '15:00:00':
-            case '16:00:00':
-            case '17:00:00':
-            case '18:00:00':
-              daytemp.push(item) //заполняем массив 
-          }
-      }
-    })
-    let restempmin = []; // хранится вся ощущаемая температуру за текущий день
-    daytemp.forEach(function (item, i) {
-      restempmin.push(item[2]);
-    })
-    let min_temp = Math.min.apply(null, restempmin)
-    document.querySelector('.t_day').innerHTML = `Дневная,минимальная, ощущаемая температура за <u>${localdate}</u>: <b>${min_temp}&deg;</b>`; //выводим минимальную температуру
-    document.querySelector('.t_night_fact').innerHTML = `Фактическая температура ночью: <b>${actual_temp_night}&deg;</b>`;
+        let result = dif_temp.filter(function (item) { //получаем запись с наименьшей разницей температур
+            if (item[1] == count) {
+                return item
+            }
+        });
 
-    let dif_temp = actual_temp_night - min_temp; //Хранится разница температур
-    document.querySelector('.dif_temp').innerHTML = `Разница температур: <b>${Math.abs(dif_temp).toFixed(2)}&deg;</b>`; //приводим разницу температуры по модулю, оставлям 2 знака после запятой
-
-    let dt = []; //Дата
-    let sunset = []; //рассвет
-    let sunrise = []; //закат
-    let res = []; //световой день
-    for (let i = 0; i <= 4; i++) { //получаем первые 5 дней, включая текущий.
-      let five_day = data.daily[i];
-      sunrise.push(five_day.sunrise); //рассвет
-      sunset.push(five_day.sunset); //закат
-      dt.push(five_day.dt) // дата 
-    }
-    for (let i = 0; i <= sunset.length - 1; i++) { // Вычитание времени: закат-рассвет Unix timestamp
-      res.push(sunset[i] - sunrise[i]); //заполняем массив данными о времени светового дня
-    }
-
-    let date_DayLightHours = []; // время в нормальном виде
-    for (let i = 0; i < res.length; i++) {
-      //переводим секунды в часы, минуты и секунды
-      let timestamp = res[i];
-      let hours = Math.floor(timestamp / 60 / 60); //Получаем часы
-      let minutes = Math.floor(Math.abs((timestamp / 60) - (hours * 60))); ////Получаем минуты
-      let seconds = timestamp % 60 //Получаем секунды
-      //вывод в удобный формат 
-      let formatted = [
-        hours.toString().padStart(2, '0'),
-        minutes.toString().padStart(2, '0'),
-        seconds.toString().padStart(2, '0')
-      ].join(':');
-      date_DayLightHours.push(formatted) //наполняем массив временем
-    }
-    let dt_dlh = []; //массив с данными - дата и световой день
-    for (let i = 0; i < dt.length; i++) {
-      let b = new Date(dt[i] * 1000).toLocaleDateString();
-      dt_dlh.push([b, date_DayLightHours[i]]) // объединяю дату и время в единый массив
-    }
-    for (let i = 0; i < dt_dlh.length; i++) { //выводи на страницу Дата Долгота дня
-      document.querySelector('.duration').innerHTML += `${dt_dlh[i][0] }----${dt_dlh[i][1]} <br> <br> `;
-    }
-  });
+        min_dif.innerHTML = `Минимальная разница температур будет:<b> ${new Date(result[0][0] * 1000).toLocaleDateString()}</b>, равной: <b>${result[0][1]}&deg;</b>`
+        //----------Задача №2----------------//
+        city.innerHTML += timezone; // выводим город
+        let dur = []; //храним данные с датой и световым днем
+        for (let i = 0; i <= 4; i++) {
+            dur.push([daily[i].dt, daily[i].sunset - daily[i].sunrise])
+        }
+        // переводим UNIX time в часы, минуты, секунды
+        for (let i = 0; i < dur.length; i++) {
+            let timestamp = dur[i][1]
+            let hours = Math.floor(timestamp / 60 / 60); //Получаем часы
+            let minutes = Math.floor(Math.abs((timestamp / 60) - (hours * 60))); ////Получаем минуты
+            let seconds = timestamp % 60 //Получаем секунды
+            // приводим UNIX time в понятный формат
+            let formatted = [
+                hours.toString().padStart(2, '0'),
+                minutes.toString().padStart(2, '0'),
+                seconds.toString().padStart(2, '0')
+            ].join(':');
+            day.innerHTML += `${new Date(dur[i][0]*1000).toLocaleDateString()}<br>` //вывод даты
+            duration.innerHTML += `${formatted}<br>` // вывод светового дня в понятном формате
+        }
+    });

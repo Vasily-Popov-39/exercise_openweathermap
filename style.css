@@ -1,12 +1,38 @@
-.section{
+.out,
+.out2 {
     display: flex;
+
+}
+
+.temp,
+.feels,
+.dif,
+.min_dif,
+.dt,
+.day,
+.duration {
+    padding: 10px;
+}
+
+.min_dif {
+    font-size: large;
+}
+
+section {
+    display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100vh;
+    border: 1px solid steelblue;
+    margin: 10px;
+    width: 600px;
+
 }
-.section{  
+
+.alignment {
+    display: flex;
     flex-direction: column;
-}
-.difference_t, .duration, .push{
-   
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
 }
